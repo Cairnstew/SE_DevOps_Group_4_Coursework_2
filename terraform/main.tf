@@ -120,18 +120,21 @@ resource "aws_instance" "build_server" {
     # Allow ubuntu user to run Docker without sudo
     usermod -aG docker ubuntu
 
-    # ── Jenkins ─────────────────────────────────────────────────────────────
-    apt-get install -y fontconfig openjdk-17-jre
-    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-    echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" \
-      > /etc/apt/sources.list.d/jenkins.list
-    apt-get update -y
-    apt-get install -y jenkins
+    # ── Jenkins (via Docker container) ──────────────────────────────────────
+    docker volume create jenkins_home
+    docker run -d \
+      --name jenkins \
+      --restart unless-stopped \
+      -p 8080:8080 \
+      -p 50000:50000 \
+      -v jenkins_home:/var/jenkins_home \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      jenkins/jenkins:lts
 
-    # Allow Jenkins to run Docker
-    usermod -aG docker jenkins
-    systemctl enable jenkins
-    systemctl start jenkins
+    # Give Jenkins access to Docker CLI inside the container
+    sleep 10
+    docker exec -u root jenkins apt-get update -y
+    docker exec -u root jenkins apt-get install -y docker.io
 
     # ── Git ─────────────────────────────────────────────────────────────────
     apt-get install -y git
