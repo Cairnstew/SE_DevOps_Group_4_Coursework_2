@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
   }
   required_version = ">= 1.3.0"
 }
@@ -106,13 +110,16 @@ resource "aws_instance" "build_server" {
     set -e
     apt-get update -y
 
+    # ── Git (needed before clone) ────────────────────────────────────────────
+    apt-get install -y git
+
     # ── Docker ──────────────────────────────────────────────────────────────
     apt-get install -y ca-certificates curl gnupg
     install -m 0755 -d /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     chmod a+r /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-      https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+    echo "deb [arch=$$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+      https://download.docker.com/linux/ubuntu $$(. /etc/os-release && echo "$$VERSION_CODENAME") stable" \
       > /etc/apt/sources.list.d/docker.list
     apt-get update -y
     apt-get install -y docker-ce docker-ce-cli containerd.io
@@ -120,8 +127,17 @@ resource "aws_instance" "build_server" {
     # Allow ubuntu user to run Docker without sudo
     usermod -aG docker ubuntu
 
-    # ── Jenkins (via Docker container) ──────────────────────────────────────
+    # ── Jenkins (via custom Docker image) ───────────────────────────────────
+    sleep 10
+
+    git clone https://github.com/${var.github_repo}.git /opt/app
+
     docker volume create jenkins_home
+
+    docker build -t jenkins-custom /opt/app/jenkins/
+
+    PUBLIC_IP=$$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
     docker run -d \
       --name jenkins \
       --restart unless-stopped \
@@ -129,15 +145,14 @@ resource "aws_instance" "build_server" {
       -p 50000:50000 \
       -v jenkins_home:/var/jenkins_home \
       -v /var/run/docker.sock:/var/run/docker.sock \
-      jenkins/jenkins:lts
+      -e JENKINS_ADMIN_PASSWORD=${var.jenkins_admin_password} \
+      -e JENKINS_URL=$$PUBLIC_IP \
+      jenkins-custom
 
-    # Give Jenkins access to Docker CLI inside the container
+    # Give Jenkins Docker CLI access
     sleep 10
     docker exec -u root jenkins apt-get update -y
     docker exec -u root jenkins apt-get install -y docker.io
-
-    # ── Git ─────────────────────────────────────────────────────────────────
-    apt-get install -y git
   EOF
 
   tags = {
@@ -145,7 +160,25 @@ resource "aws_instance" "build_server" {
   }
 }
 
-# ── EC2: Production Server ───────────────────────────────────────────────────
+# ── Generate SSH config ──────────────────────────────────────────────────────
+resource "local_file" "ssh_config" {
+  filename        = "${path.module}/.ssh-config"
+  file_permission = "0600"
+  content         = <<-EOT
+    Host build-server
+        HostName ${aws_instance.build_server.public_ip}
+        User ubuntu
+        IdentityFile ${var.private_key_path}
+        StrictHostKeyChecking no
+
+    Host prod-server
+        HostName ${aws_instance.prod_server.public_ip}
+        User ubuntu
+        IdentityFile ${var.private_key_path}
+        StrictHostKeyChecking no
+  EOT
+}
+
 resource "aws_instance" "prod_server" {
   ami                    = var.ami_id
   instance_type          = "t2.large"
@@ -171,8 +204,8 @@ resource "aws_instance" "prod_server" {
     install -m 0755 -d /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     chmod a+r /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-      https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+    echo "deb [arch=$$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+      https://download.docker.com/linux/ubuntu $$(. /etc/os-release && echo "$$VERSION_CODENAME") stable" \
       > /etc/apt/sources.list.d/docker.list
     apt-get update -y
     apt-get install -y docker-ce docker-ce-cli containerd.io

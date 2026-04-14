@@ -31,3 +31,15 @@ variable "private_key_path" {
   type        = string
   default     = "~/.ssh/labsuser.pem"
 }
+
+variable "github_repo" {
+  description = "GitHub repo in format username/repo-name"
+  type        = string
+  default     = "your-username/your-repo"
+}
+
+variable "jenkins_admin_password" {
+  description = "Jenkins admin password — set via TF_VAR_jenkins_admin_password in .envrc"
+  type        = string
+  sensitive   = true
+}

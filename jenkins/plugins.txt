@@ -1,0 +1,38 @@
+# Core CasC plugin (required first)
+configuration-as-code:1810.v9b_c30a_249a_4c
+
+# Security
+role-strategy:727.vd344b_eec783d
+matrix-auth:3.2.2
+credentials:1371.vfee6b_095f0a_3
+credentials-binding:677.vd400e5d3d594
+
+# Source control
+git:5.6.0
+github:1.40.0
+github-branch-source:1797.v86fdb_4d57d43
+
+# Pipeline
+workflow-aggregator:600.vb_57cdd26fdd7
+pipeline-stage-view:2.34
+pipeline-graph-analysis:202.va_d268d3a_a_8a_2
+blueocean:1.27.14
+
+# Build tools
+maven-plugin:3.23
+gradle:2.11.1
+
+# Notifications
+slack:718.v6d9f9f5b_5890
+email-ext:1797.v4f7d8a_9f75d8
+
+# Docker
+docker-plugin:1.6.2
+docker-workflow:572.v950f58993843
+
+# Utilities
+timestamper:1.27
+ws-cleanup:0.46
+ansicolor:1.0.4
+build-timeout:1.32
+throttle-concurrents:2.14

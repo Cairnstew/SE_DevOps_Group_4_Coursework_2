@@ -1,0 +1,90 @@
+# Jenkins Configuration as Code (JCasC)
+# Place this file at: $JENKINS_HOME/casc_configs/jenkins.yaml
+# Or set: CASC_JENKINS_CONFIG=/path/to/jenkins.yaml
+
+jenkins:
+  systemMessage: "Jenkins managed by Configuration as Code"
+  numExecutors: 2
+  mode: NORMAL
+  labelString: ""
+  crumbIssuer:
+    standard:
+      excludeClientIPFromCrumb: false
+
+    # ── Security realm: create root admin user ──
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          name: "Root Admin"
+          password: "${JENKINS_ADMIN_PASSWORD}"  # env var
+          properties:
+            - mailer:
+                emailAddress: "admin@example.com"
+
+    # ── Authorization: admin gets full access ──
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            description: "Full administrator access"
+            permissions:
+              - "Overall/Administer"
+            assignments:
+              - "admin"
+          - name: "readonly"
+            description: "Read-only access"
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+
+    # ── Global node properties ──
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "ENVIRONMENT"
+            value: "production"
+
+# ── Unclassified settings ──
+unclassified:
+  location:
+    url: "https://jenkins.example.com/"
+    adminAddress: "admin@example.com"
+  gitHubPluginConfig:
+    hookUrl: "https://jenkins.example.com/github-webhook/"
+
+# ── Credentials store ──
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "github-creds"
+              username: "${GITHUB_USER}"
+              password: "${GITHUB_TOKEN}"
+          - string:
+              scope: GLOBAL
+              id: "docker-hub-token"
+              secret: "${DOCKER_HUB_TOKEN}"
+
+# ── Tool installations ──
+tool:
+  jdk:
+    installations:
+      - name: "JDK-17"
+        home: "/usr/lib/jvm/java-17-openjdk-amd64"
+  maven:
+    installations:
+      - name: "Maven-3"
+        properties:
+          - installSource:
+              installers:
+                - maven:
+                    id: "3.9.6"
+  git:
+    installations:
+      - name: "Default"
+        home: "git"
