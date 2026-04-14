@@ -2,8 +2,6 @@
 .direnv/
 .aws/
 
-flake.lock
-
 # Local .terraform directories
 .terraform/
 
