@@ -1,0 +1,21 @@
+---
+# Task 2a — Install kubectl
+- name: Install kubectl
+  hosts: prod
+  become: true
+
+  tasks:
+    - name: Download kubectl binary
+      get_url:
+        url: "https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+
+    - name: Verify kubectl is installed
+      command: kubectl version --client
+      register: kubectl_version
+      changed_when: false
+
+    - name: Print kubectl version
+      debug:
+        msg: "{{ kubectl_version.stdout }}"

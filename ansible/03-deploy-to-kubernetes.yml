@@ -1,0 +1,30 @@
+---
+# Task 2c — Deploy image from DockerHub to Kubernetes
+- name: Deploy cw2-server to Kubernetes
+  hosts: prod
+  become: true
+  become_user: ubuntu
+
+  vars:
+    dockerhub_username: "your-dockerhub-username"  # ← replace with your DockerHub username
+    image_tag: "1.0"
+
+  tasks:
+    - name: Create Kubernetes deployment
+      command: >
+        kubectl create deployment cw2-server
+        --image={{ dockerhub_username }}/cw2-server:{{ image_tag }}
+      register: deploy_result
+      failed_when:
+        - deploy_result.rc != 0
+        - '"already exists" not in deploy_result.stderr'
+      changed_when: '"created" in deploy_result.stdout'
+
+    - name: Verify deployment was created
+      command: kubectl get deployment cw2-server
+      register: deployment_status
+      changed_when: false
+
+    - name: Print deployment status
+      debug:
+        msg: "{{ deployment_status.stdout }}"

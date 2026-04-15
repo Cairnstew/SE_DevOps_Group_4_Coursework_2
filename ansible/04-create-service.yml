@@ -1,0 +1,43 @@
+---
+# Task 2d — Create a NodePort service for the application
+- name: Create Kubernetes service for cw2-server
+  hosts: prod
+  become: true
+  become_user: ubuntu
+
+  tasks:
+    - name: Expose deployment as a NodePort service
+      command: >
+        kubectl expose deployment cw2-server
+        --type=NodePort
+        --port=8081
+      register: service_result
+      failed_when:
+        - service_result.rc != 0
+        - '"already exists" not in service_result.stderr'
+      changed_when: '"exposed" in service_result.stdout'
+
+    - name: Get service details
+      command: kubectl get service cw2-server
+      register: service_status
+      changed_when: false
+
+    - name: Print service details
+      debug:
+        msg: "{{ service_status.stdout }}"
+
+    - name: Get Minikube IP
+      command: minikube ip
+      register: minikube_ip
+      changed_when: false
+
+    - name: Get assigned NodePort
+      command: >
+        kubectl get service cw2-server
+        -o jsonpath='{.spec.ports[0].nodePort}'
+      register: node_port
+      changed_when: false
+
+    - name: Print access URL
+      debug:
+        msg: "App accessible at http://{{ minikube_ip.stdout }}:{{ node_port.stdout }}"

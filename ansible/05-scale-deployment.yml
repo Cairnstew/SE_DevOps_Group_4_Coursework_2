@@ -1,0 +1,35 @@
+---
+# Task 2e — Scale deployment to 3 replicas and configure rolling update strategy
+# 3 replicas satisfies the rolling update requirement:
+# maxUnavailable=1 means 2 pods always serving traffic during an update
+- name: Scale cw2-server deployment for rolling updates
+  hosts: prod
+  become: true
+  become_user: ubuntu
+
+  tasks:
+    - name: Scale deployment to 3 replicas
+      command: kubectl scale deployment cw2-server --replicas=3
+      register: scale_result
+      changed_when: '"scaled" in scale_result.stdout'
+
+    - name: Configure rolling update strategy
+      command: >
+        kubectl patch deployment cw2-server
+        -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":1}}}}'
+      register: patch_result
+      changed_when: '"patched" in patch_result.stdout'
+
+    - name: Wait for all replicas to be ready
+      command: kubectl rollout status deployment/cw2-server
+      register: rollout_status
+      changed_when: false
+
+    - name: Verify pods are running
+      command: kubectl get pods
+      register: pods_status
+      changed_when: false
+
+    - name: Print pod status
+      debug:
+        msg: "{{ pods_status.stdout }}"

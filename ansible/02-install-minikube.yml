@@ -1,0 +1,39 @@
+---
+# Task 2b — Install and start Minikube
+- name: Install and start Minikube
+  hosts: prod
+  become: true
+
+  tasks:
+    - name: Download Minikube binary
+      get_url:
+        url: "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64"
+        dest: /usr/local/bin/minikube
+        mode: "0755"
+
+    - name: Verify minikube binary exists
+      command: minikube version
+      register: minikube_version
+      changed_when: false
+
+    - name: Print minikube version
+      debug:
+        msg: "{{ minikube_version.stdout }}"
+
+    - name: Start Minikube as ubuntu user (docker driver)
+      become: true
+      become_user: ubuntu
+      command: minikube start --driver=docker
+      args:
+        creates: /home/ubuntu/.minikube/profiles/minikube/config.json
+
+    - name: Verify Minikube is running
+      become: true
+      become_user: ubuntu
+      command: minikube status
+      register: minikube_status
+      changed_when: false
+
+    - name: Print Minikube status
+      debug:
+        msg: "{{ minikube_status.stdout }}"
