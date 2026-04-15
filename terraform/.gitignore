@@ -1,6 +1,7 @@
 .envrc
 .direnv/
 .aws/
+.ssh-config
 
 # Local .terraform directories
 .terraform/
