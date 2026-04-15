@@ -13,7 +13,4 @@ RUN jenkins-plugin-cli \
 # Copy CasC config into the image
 COPY jenkins.yaml /var/jenkins_home/casc_configs/jenkins.yaml
 
-# Optional: pre-seed job DSL scripts
-COPY jobs/ /var/jenkins_home/jobs/
-
 USER jenkins
