@@ -146,7 +146,9 @@ resource "aws_instance" "prod_server" {
   }
 
   # Install Ansible and Docker (needed by Minikube) on first boot
-  user_data = templatefile("${path.module}/prod_server_init.sh.tpl", {})
+  user_data = templatefile("${path.module}/prod_server_init.sh.tpl", {
+    github_repo = var.github_repo
+  })
 
   tags = {
     Name = "Production Server"
