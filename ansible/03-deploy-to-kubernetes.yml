@@ -6,7 +6,7 @@
   become_user: ubuntu
 
   vars:
-    dockerhub_username: "your-dockerhub-username"  # ← replace with your DockerHub username
+    dockerhub_username: "seanstrcairns"
     image_tag: "1.0"
 
   tasks:
