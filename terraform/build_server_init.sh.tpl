@@ -47,14 +47,20 @@ JENKINS_URL=http://$PUBLIC_IP:8080/
 ENV
 chmod 600 /opt/jenkins-secrets/secrets.env
 
-# ── Write prod server SSH key ─────────────────────────────────────────────────
-cat > /opt/jenkins-secrets/prod_server_ssh_key << 'SSHKEY'
-PROD_SSH_KEY_VAL
-SSHKEY
+# ── Write prod server SSH key as a proper file ────────────────────────────────
+mkdir -p /opt/jenkins-secrets
+
+# Write key directly - Terraform injects it, printf preserves newlines
+printf '%s' '${prod_server_ssh_key}' > /opt/jenkins-secrets/prod_server_ssh_key
+
+# Verify it looks correct (should show -----BEGIN ... -----)
+head -1 /opt/jenkins-secrets/prod_server_ssh_key
 chmod 600 /opt/jenkins-secrets/prod_server_ssh_key
 
-ESCAPED_KEY=$(awk '{printf "%s\\n", $0}' /opt/jenkins-secrets/prod_server_ssh_key)
-echo "PROD_SERVER_SSH_KEY=$ESCAPED_KEY" >> /opt/jenkins-secrets/secrets.env
+# For JCasC: encode as base64 single line - JCasC will decode it
+B64_KEY=$$(base64 -w 0 /opt/jenkins-secrets/prod_server_ssh_key)
+printf 'PROD_SERVER_SSH_KEY_B64=%s\n' "$$B64_KEY" >> /opt/jenkins-secrets/secrets.env
+
 echo "=== Secrets written ==="
 
 # ── Build and run Jenkins ─────────────────────────────────────────────────────

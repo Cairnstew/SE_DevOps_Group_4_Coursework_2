@@ -23,7 +23,7 @@ credentials:
           id: "prod-server-ssh-key"
           privateKeySource:
             directEntry:
-              privateKey: "${PROD_SERVER_SSH_KEY}"
+              privateKey: "${readFile:/run/secrets/prod_server_ssh_key}"
           scope: GLOBAL
           username: "ubuntu"
       domain: {}
