@@ -37,3 +37,4 @@ ws-cleanup
 ansicolor
 build-timeout
 throttle-concurrents
+ssh-agent
