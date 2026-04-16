@@ -2,7 +2,7 @@
 set -e
 apt-get update -y
 
-# ── Git (needed before clone) ────────────────────────────────────────────────
+# ── Git ──────────────────────────────────────────────────────────────────────
 apt-get install -y git
 
 # ── Docker ───────────────────────────────────────────────────────────────────
@@ -17,15 +17,39 @@ apt-get update -y
 apt-get install -y docker-ce docker-ce-cli containerd.io
 usermod -aG docker ubuntu
 
-# ── Jenkins (via custom Docker image) ────────────────────────────────────────
+# ── Clone repo ───────────────────────────────────────────────────────────────
 sleep 10
-
 git clone https://github.com/${github_repo}.git /opt/app
 
+# ── Write JCasC secrets file ─────────────────────────────────────────────────
+# This file is mounted into the container so JCasC can resolve ${VAR} placeholders
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+mkdir -p /opt/jenkins-secrets
+cat > /opt/jenkins-secrets/secrets.env <<ENV
+GITHUB_USERNAME=${github_username}
+GITHUB_TOKEN=${github_token}
+DOCKERHUB_USERNAME=${dockerhub_username}
+DOCKERHUB_PASSWORD=${dockerhub_password}
+PROD_SERVER_IP=$PUBLIC_IP
+JENKINS_URL=http://$PUBLIC_IP:8080/
+ENV
+chmod 600 /opt/jenkins-secrets/secrets.env
+
+# ── Write prod server SSH key ─────────────────────────────────────────────────
+# Written as a file because multiline env vars are unreliable across Docker --env-file
+cat > /opt/jenkins-secrets/prod_server_ssh_key <<'SSHKEY'
+${prod_server_ssh_key}
+SSHKEY
+chmod 600 /opt/jenkins-secrets/prod_server_ssh_key
+
+# Append to secrets.env so JCasC can read it as a single-line escaped var
+ESCAPED_KEY=$(awk '{printf "%s\\n", $0}' /opt/jenkins-secrets/prod_server_ssh_key)
+echo "PROD_SERVER_SSH_KEY=$ESCAPED_KEY" >> /opt/jenkins-secrets/secrets.env
+
+# ── Build and run Jenkins ─────────────────────────────────────────────────────
 docker volume create jenkins_home
 docker build -t jenkins-custom /opt/app/jenkins/
-
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
 docker run -d \
   --name jenkins \
@@ -34,11 +58,12 @@ docker run -d \
   -p 50000:50000 \
   -v jenkins_home:/var/jenkins_home \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/jenkins-secrets/prod_server_ssh_key:/run/secrets/prod_server_ssh_key:ro \
+  --env-file /opt/jenkins-secrets/secrets.env \
   -e JENKINS_ADMIN_PASSWORD=${jenkins_admin_password} \
-  -e JENKINS_URL=$PUBLIC_IP \
   jenkins-custom
 
-# Give Jenkins Docker CLI access
+# ── Give Jenkins Docker CLI access ───────────────────────────────────────────
 sleep 10
 docker exec -u root jenkins apt-get update -y
 docker exec -u root jenkins apt-get install -y docker.io
