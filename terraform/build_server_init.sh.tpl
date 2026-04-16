@@ -99,8 +99,9 @@ sed -i "s|JENKINS_ADMIN_PASSWORD_VAL|${jenkins_admin_password}|g" /tmp/init.sh
 
 # SSH key is multiline — use python to safely inject it
 python3 - << PYEOF
+import base64
 content = open('/tmp/init.sh').read()
-ssh_key = """${prod_server_ssh_key}"""
+ssh_key = base64.b64decode("${prod_server_ssh_key}").decode('utf-8')
 content = content.replace('PROD_SSH_KEY_VAL', ssh_key)
 open('/tmp/init.sh', 'w').write(content)
 PYEOF
