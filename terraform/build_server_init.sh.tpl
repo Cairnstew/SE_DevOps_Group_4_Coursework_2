@@ -5,7 +5,7 @@ set -e
 cat > /tmp/init.sh << 'ENDINIT'
 #!/bin/bash
 set -e
-exec > >(tee /var/log/user-data.log | logger -t user-data) 2>&1
+exec > /var/log/user-data.log 2>&1
 echo "=== Starting build server init: $(date) ==="
 
 apt-get update -y
