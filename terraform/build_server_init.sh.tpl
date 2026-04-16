@@ -10,9 +10,9 @@ apt-get install -y ca-certificates curl gnupg
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
-ARCH=$(dpkg --print-architecture)
-CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
-echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $CODENAME stable" > /etc/apt/sources.list.d/docker.list
+ARCH=$$(dpkg --print-architecture)
+CODENAME=$$(. /etc/os-release && echo "$$VERSION_CODENAME")
+echo "deb [arch=$$ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $$CODENAME stable" > /etc/apt/sources.list.d/docker.list
 apt-get update -y
 apt-get install -y docker-ce docker-ce-cli containerd.io
 usermod -aG docker ubuntu
@@ -21,9 +21,8 @@ usermod -aG docker ubuntu
 sleep 10
 git clone https://github.com/${github_repo}.git /opt/app
 
-# ── Write JCasC secrets file ─────────────────────────────────────────────────
-# This file is mounted into the container so JCasC can resolve ${VAR} placeholders
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+# ── Write JCasC secrets file ──────────────────────────────────────────────────
+PUBLIC_IP=$$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
 mkdir -p /opt/jenkins-secrets
 cat > /opt/jenkins-secrets/secrets.env <<ENV
@@ -31,21 +30,19 @@ GITHUB_USERNAME=${github_username}
 GITHUB_TOKEN=${github_token}
 DOCKERHUB_USERNAME=${dockerhub_username}
 DOCKERHUB_PASSWORD=${dockerhub_password}
-PROD_SERVER_IP=$PUBLIC_IP
-JENKINS_URL=http://$PUBLIC_IP:8080/
+PROD_SERVER_IP=$$PUBLIC_IP
+JENKINS_URL=http://$$PUBLIC_IP:8080/
 ENV
 chmod 600 /opt/jenkins-secrets/secrets.env
 
 # ── Write prod server SSH key ─────────────────────────────────────────────────
-# Written as a file because multiline env vars are unreliable across Docker --env-file
 cat > /opt/jenkins-secrets/prod_server_ssh_key <<'SSHKEY'
 ${prod_server_ssh_key}
 SSHKEY
 chmod 600 /opt/jenkins-secrets/prod_server_ssh_key
 
-# Append to secrets.env so JCasC can read it as a single-line escaped var
-ESCAPED_KEY=$(awk '{printf "%s\\n", $0}' /opt/jenkins-secrets/prod_server_ssh_key)
-echo "PROD_SERVER_SSH_KEY=$ESCAPED_KEY" >> /opt/jenkins-secrets/secrets.env
+ESCAPED_KEY=$$(awk '{printf "%s\\n", $$0}' /opt/jenkins-secrets/prod_server_ssh_key)
+echo "PROD_SERVER_SSH_KEY=$$ESCAPED_KEY" >> /opt/jenkins-secrets/secrets.env
 
 # ── Build and run Jenkins ─────────────────────────────────────────────────────
 docker volume create jenkins_home
