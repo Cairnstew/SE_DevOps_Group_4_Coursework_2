@@ -5,19 +5,16 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
         IMAGE_NAME             = "${DOCKERHUB_CREDENTIALS_USR}/cw2-server"
         PROD_SERVER_IP         = credentials('prod-server-ip')
-        SSH_KEY                = credentials('prod-server-ssh-key')
     }
 
     stages {
 
-        // 3a — Triggered automatically by GitHub SCM polling / webhook
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        // 3b — Build Docker image from Dockerfile in repo root
         stage('Build Image') {
             steps {
                 sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
@@ -25,7 +22,6 @@ pipeline {
             }
         }
 
-        // 3c — Build test: launch container and verify it starts
         stage('Build Test') {
             steps {
                 sh """
@@ -46,7 +42,6 @@ pipeline {
             }
         }
 
-        // 3d — Push image to DockerHub
         stage('Push to DockerHub') {
             steps {
                 sh "echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin"
@@ -55,14 +50,16 @@ pipeline {
             }
         }
 
-        // 3e — Rolling update on Kubernetes (no service disruption)
+        // sshagent loads the key correctly from the Jenkins credential store
         stage('Deploy to Kubernetes') {
             steps {
-                sh """
-                    ssh -o StrictHostKeyChecking=no -i ${SSH_KEY} ubuntu@${PROD_SERVER_IP} \
-                    'kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && \
-                     kubectl rollout status deployment/cw2-server'
-                """
+                sshagent(credentials: ['prod-server-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${PROD_SERVER_IP} \
+                        'kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && \
+                         kubectl rollout status deployment/cw2-server'
+                    """
+                }
             }
         }
     }
