@@ -104,6 +104,12 @@ resource "aws_instance" "build_server" {
     volume_type = "gp3"
   }
 
+  # Allow IMDSv1 so the init script can curl the metadata endpoint without a token
+  metadata_options {
+    http_tokens   = "optional"
+    http_endpoint = "enabled"
+  }
+
   # Install Docker and Jenkins on first boot
   user_data = templatefile("${path.module}/build_server_init.sh.tpl", {
     github_repo            = var.github_repo
@@ -143,6 +149,12 @@ resource "aws_instance" "prod_server" {
   root_block_device {
     volume_size = 12
     volume_type = "gp3"
+  }
+
+  # Allow IMDSv1 so the init script can curl the metadata endpoint without a token
+  metadata_options {
+    http_tokens   = "optional"
+    http_endpoint = "enabled"
   }
 
   # Install Ansible and Docker (needed by Minikube) on first boot
