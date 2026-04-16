@@ -32,8 +32,8 @@ pipeline {
                     docker run -d --name test-${BUILD_NUMBER} -p 8082:8081 ${IMAGE_NAME}:${BUILD_NUMBER}
                     sleep 5
                     docker exec test-${BUILD_NUMBER} node --version
-                    CONTAINER_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-${BUILD_NUMBER})
-                    curl -f http://$CONTAINER_IP:8081 || exit 1
+                    CONTAINER_IP=\$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-${BUILD_NUMBER})
+                    curl -f http://\$CONTAINER_IP:8081 || exit 1
                 """
             }
             post {
