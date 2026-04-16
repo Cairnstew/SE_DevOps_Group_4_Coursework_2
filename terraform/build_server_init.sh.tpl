@@ -80,6 +80,9 @@ sleep 10
 docker exec -u root jenkins apt-get update -y
 docker exec -u root jenkins apt-get install -y docker.io
 
+docker exec -u root jenkins groupadd -g 999 docker || true
+docker exec -u root jenkins usermod -aG docker jenkins
+
 echo "=== Build server init complete: $(date) ==="
 ENDINIT
 
