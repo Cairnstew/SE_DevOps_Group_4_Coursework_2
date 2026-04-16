@@ -62,6 +62,8 @@ docker volume create jenkins_home
 docker build -t jenkins-custom /opt/app/jenkins/
 echo "=== Jenkins image built ==="
 
+DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
+
 docker run -d \
   --name jenkins \
   --restart unless-stopped \
@@ -69,6 +71,7 @@ docker run -d \
   -p 50000:50000 \
   -v jenkins_home:/var/jenkins_home \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  --group-add $DOCKER_GID \
   -v /opt/jenkins-secrets/prod_server_ssh_key:/run/secrets/prod_server_ssh_key:ro \
   --env-file /opt/jenkins-secrets/secrets.env \
   -e JENKINS_ADMIN_PASSWORD=JENKINS_ADMIN_PASSWORD_VAL \
