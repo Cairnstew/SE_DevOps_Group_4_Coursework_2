@@ -1,19 +1,103 @@
+configuration-as-code: {}
+
+credentials:
+  system:
+    domainCredentials:
+    - credentials:
+      - usernamePassword:
+          description: "GitHub repo credentials"
+          id: "cw2-repo-token"
+          password: "${GITHUB_TOKEN}"
+          scope: GLOBAL
+          username: "${GITHUB_USERNAME}"
+      - usernamePassword:
+          id: "dockerhub-creds"
+          password: "${DOCKERHUB_PASSWORD}"
+          scope: GLOBAL
+          username: "${DOCKERHUB_USERNAME}"
+      - string:
+          id: "prod-server-ip"
+          scope: GLOBAL
+          secret: "${PROD_SERVER_IP}"
+      - basicSSHUserPrivateKey:
+          id: "prod-server-ssh-key"
+          privateKeySource:
+            directEntry:
+              privateKey: "${PROD_SERVER_SSH_KEY}"
+          scope: GLOBAL
+          username: "ubuntu"
+      domain: {}
+
 jenkins:
-  systemMessage: "Jenkins configured via JCasC"
-  numExecutors: 2
-  mode: NORMAL
-
-  securityRealm:
-    local:
-      allowsSignup: false
-      users:
-        - id: "admin"
-          password: "${JENKINS_ADMIN_PASSWORD}"
-
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
+  crumbIssuer:
+    standard:
+      excludeClientIPFromCrumb: false
+  numExecutors: 2
+  mode: NORMAL
+  securityRealm:
+    local:
+      allowsSignup: false
+      enableCaptcha: false
+      users:
+      - id: "admin"
+        name: "admin"
+        properties:
+        - "apiToken"
+  slaveAgentPort: 50000
+  systemMessage: "Jenkins configured via JCasC"
+
+security:
+  apiToken:
+    creationOfLegacyTokenEnabled: false
+    tokenGenerationOnCreationEnabled: false
+    usageStatisticsEnabled: true
+  gitHooks:
+    allowedOnAgents: false
+    allowedOnController: false
+  gitHostKeyVerificationConfiguration:
+    sshHostKeyVerificationStrategy: "knownHostsFileVerificationStrategy"
 
 unclassified:
+  gitHubPluginConfig:
+    hookUrl: "${JENKINS_URL}/github-webhook/"
   location:
-    url: "http://${JENKINS_URL}:8080/"
+    adminAddress: "address not configured yet <nobody@nowhere>"
+    url: "${JENKINS_URL}"
+  slackNotifier:
+    botUser: false
+    sendAsText: false
+  scmGit:
+    addGitTagAction: false
+    allowSecondFetch: false
+    createAccountBasedOnEmail: false
+    disableGitToolChooser: false
+    hideCredentials: false
+
+tool:
+  git:
+    installations:
+    - home: "git"
+      name: "Default"
+
+jobs:
+  - script: >
+      pipelineJob('SE_DevOps_Group_4_CW2') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/Cairnstew/SE_DevOps_Group_4_Coursework_2.git')
+                  credentials('cw2-repo-token')
+                }
+                branch('*/master')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(true)
+          }
+        }
+      }

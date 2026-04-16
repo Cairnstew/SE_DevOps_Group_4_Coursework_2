@@ -16,18 +16,11 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ── NOTE FOR AWS ACADEMY USERS ──────────────────────────────────────────────
-# The voclabs role cannot call DescribeImages or manage key pairs.
-# Set var.ami_id to the Ubuntu 22.04 AMI shown in your region's EC2 console.
-# The key pair is pre-created by AWS Academy — set var.key_pair_name to match
-# (it is usually "vockey").
-
 # ── Security Group: Build Server ────────────────────────────────────────────
 resource "aws_security_group" "build_server_sg" {
   name        = "build-server-sg"
   description = "Build Server - SSH + Jenkins"
 
-  # SSH
   ingress {
     description = "SSH"
     from_port   = 22
@@ -36,7 +29,6 @@ resource "aws_security_group" "build_server_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Jenkins
   ingress {
     description = "Jenkins"
     from_port   = 8080
@@ -52,9 +44,7 @@ resource "aws_security_group" "build_server_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "build-server-sg"
-  }
+  tags = { Name = "build-server-sg" }
 }
 
 # ── Security Group: Production Server ───────────────────────────────────────
@@ -62,7 +52,6 @@ resource "aws_security_group" "prod_server_sg" {
   name        = "prod-server-sg"
   description = "Production Server - SSH + NodePort range"
 
-  # SSH
   ingress {
     description = "SSH"
     from_port   = 22
@@ -71,7 +60,6 @@ resource "aws_security_group" "prod_server_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Kubernetes NodePort range
   ingress {
     description = "Kubernetes NodePort range"
     from_port   = 30000
@@ -87,9 +75,7 @@ resource "aws_security_group" "prod_server_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "prod-server-sg"
-  }
+  tags = { Name = "prod-server-sg" }
 }
 
 # ── EC2: Build Server ────────────────────────────────────────────────────────
@@ -104,21 +90,46 @@ resource "aws_instance" "build_server" {
     volume_type = "gp3"
   }
 
-  # Allow IMDSv1 so the init script can curl the metadata endpoint without a token
   metadata_options {
     http_tokens   = "optional"
     http_endpoint = "enabled"
   }
 
-  # Install Docker and Jenkins on first boot
   user_data = templatefile("${path.module}/build_server_init.sh.tpl", {
     github_repo            = var.github_repo
     jenkins_admin_password = var.jenkins_admin_password
+    github_username        = var.github_username
+    github_token           = var.github_token
+    dockerhub_username     = var.dockerhub_username
+    dockerhub_password     = var.dockerhub_password
+    prod_server_ssh_key    = var.prod_server_ssh_key
   })
 
-  tags = {
-    Name = "Build Server"
+  tags = { Name = "Build Server" }
+}
+
+# ── EC2: Production Server ───────────────────────────────────────────────────
+resource "aws_instance" "prod_server" {
+  ami                    = var.ami_id
+  instance_type          = "t2.large"
+  key_name               = var.key_pair_name
+  vpc_security_group_ids = [aws_security_group.prod_server_sg.id]
+
+  root_block_device {
+    volume_size = 12
+    volume_type = "gp3"
   }
+
+  metadata_options {
+    http_tokens   = "optional"
+    http_endpoint = "enabled"
+  }
+
+  user_data = templatefile("${path.module}/prod_server_init.sh.tpl", {
+    github_repo = var.github_repo
+  })
+
+  tags = { Name = "Production Server" }
 }
 
 # ── Generate SSH config ──────────────────────────────────────────────────────
@@ -140,29 +151,11 @@ resource "local_file" "ssh_config" {
   EOT
 }
 
-resource "aws_instance" "prod_server" {
-  ami                    = var.ami_id
-  instance_type          = "t2.large"
-  key_name               = var.key_pair_name
-  vpc_security_group_ids = [aws_security_group.prod_server_sg.id]
+# ── Output public IPs ────────────────────────────────────────────────────────
+output "build_server_ip" {
+  value = aws_instance.build_server.public_ip
+}
 
-  root_block_device {
-    volume_size = 12
-    volume_type = "gp3"
-  }
-
-  # Allow IMDSv1 so the init script can curl the metadata endpoint without a token
-  metadata_options {
-    http_tokens   = "optional"
-    http_endpoint = "enabled"
-  }
-
-  # Install Ansible and Docker (needed by Minikube) on first boot
-  user_data = templatefile("${path.module}/prod_server_init.sh.tpl", {
-    github_repo = var.github_repo
-  })
-
-  tags = {
-    Name = "Production Server"
-  }
+output "prod_server_ip" {
+  value = aws_instance.prod_server.public_ip
 }

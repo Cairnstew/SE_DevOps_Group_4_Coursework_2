@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region to deploy into"
   type        = string
-  default     = "us-east-1" # AWS Academy defaults to us-east-1
+  default     = "us-east-1"
 }
 
 variable "ami_id" {
@@ -21,7 +21,7 @@ variable "key_pair_name" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type. Spec requires t2.large. Use t2.micro only for testing (Minikube will likely crash)."
+  description = "EC2 instance type."
   type        = string
   default     = "t2.large"
 }
@@ -39,7 +39,37 @@ variable "github_repo" {
 }
 
 variable "jenkins_admin_password" {
-  description = "Jenkins admin password — set via TF_VAR_jenkins_admin_password in .envrc"
+  description = "Jenkins admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_username" {
+  description = "GitHub username for Jenkins credential"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_token" {
+  description = "GitHub personal access token for Jenkins credential"
+  type        = string
+  sensitive   = true
+}
+
+variable "dockerhub_username" {
+  description = "Docker Hub username for Jenkins credential"
+  type        = string
+  sensitive   = true
+}
+
+variable "dockerhub_password" {
+  description = "Docker Hub password/token for Jenkins credential"
+  type        = string
+  sensitive   = true
+}
+
+variable "prod_server_ssh_key" {
+  description = "Private SSH key for connecting to the production server (PEM, multiline)"
   type        = string
   sensitive   = true
 }
