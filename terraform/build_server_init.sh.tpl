@@ -49,6 +49,7 @@ chmod 600 /opt/jenkins-secrets/secrets.env
 
 # ── Write prod server SSH key (decode from base64) ────────────────────────────
 echo "PROD_SSH_KEY_B64_VAL" | base64 -d > /opt/jenkins-secrets/prod_server_ssh_key
+chown 1000:1000 /opt/jenkins-secrets/prod_server_ssh_key
 chmod 600 /opt/jenkins-secrets/prod_server_ssh_key
 echo "=== SSH key written ($(wc -c < /opt/jenkins-secrets/prod_server_ssh_key) bytes) ==="
 
