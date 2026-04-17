@@ -47,21 +47,10 @@ JENKINS_URL=http://$PUBLIC_IP:8080/
 ENV
 chmod 600 /opt/jenkins-secrets/secrets.env
 
-# ── Write prod server SSH key as a proper file ────────────────────────────────
-mkdir -p /opt/jenkins-secrets
-
-# Write key directly - Terraform injects it, printf preserves newlines
-printf '%s' '${prod_server_ssh_key}' > /opt/jenkins-secrets/prod_server_ssh_key
-
-# Verify it looks correct (should show -----BEGIN ... -----)
-head -1 /opt/jenkins-secrets/prod_server_ssh_key
+# ── Write prod server SSH key (decode from base64) ────────────────────────────
+echo "PROD_SSH_KEY_B64_VAL" | base64 -d > /opt/jenkins-secrets/prod_server_ssh_key
 chmod 600 /opt/jenkins-secrets/prod_server_ssh_key
-
-# For JCasC: encode as base64 single line - JCasC will decode it
-B64_KEY=$$(base64 -w 0 /opt/jenkins-secrets/prod_server_ssh_key)
-printf 'PROD_SERVER_SSH_KEY_B64=%s\n' "$$B64_KEY" >> /opt/jenkins-secrets/secrets.env
-
-echo "=== Secrets written ==="
+echo "=== SSH key written ($(wc -c < /opt/jenkins-secrets/prod_server_ssh_key) bytes) ==="
 
 # ── Build and run Jenkins ─────────────────────────────────────────────────────
 docker volume create jenkins_home
@@ -96,33 +85,13 @@ echo "=== Build server init complete: $(date) ==="
 ENDINIT
 
 # ── Substitute Terraform variables into the script ────────────────────────────
-sed -i "s|GITHUB_REPO|${github_repo}|g"                       /tmp/init.sh
-sed -i "s|GITHUB_USERNAME_VAL|${github_username}|g"           /tmp/init.sh
-sed -i "s|GITHUB_TOKEN_VAL|${github_token}|g"                 /tmp/init.sh
-sed -i "s|DOCKERHUB_USERNAME_VAL|${dockerhub_username}|g"     /tmp/init.sh
-sed -i "s|DOCKERHUB_PASSWORD_VAL|${dockerhub_password}|g"     /tmp/init.sh
+sed -i "s|GITHUB_REPO|${github_repo}|g"                           /tmp/init.sh
+sed -i "s|GITHUB_USERNAME_VAL|${github_username}|g"               /tmp/init.sh
+sed -i "s|GITHUB_TOKEN_VAL|${github_token}|g"                     /tmp/init.sh
+sed -i "s|DOCKERHUB_USERNAME_VAL|${dockerhub_username}|g"         /tmp/init.sh
+sed -i "s|DOCKERHUB_PASSWORD_VAL|${dockerhub_password}|g"         /tmp/init.sh
 sed -i "s|JENKINS_ADMIN_PASSWORD_VAL|${jenkins_admin_password}|g" /tmp/init.sh
-
-# SSH key is multiline — use python to safely inject it
-python3 - << PYEOF
-import base64
-
-raw = "${prod_server_ssh_key}"
-
-print("Encoded length:", len(raw))
-
-try:
-    decoded = base64.b64decode(raw)
-    print("Decoded bytes:", len(decoded))
-except Exception as e:
-    print("BASE64 DECODE FAILED:", e)
-    raise
-
-ssh_key = decoded.decode('utf-8')
-
-print("Decoded first 30 chars:", ssh_key[:30])
-print("Decoded last 30 chars:", ssh_key[-30:])
-PYEOF
+sed -i "s|PROD_SSH_KEY_B64_VAL|${prod_server_ssh_key}|g"          /tmp/init.sh
 
 chmod +x /tmp/init.sh
 bash /tmp/init.sh
