@@ -4,10 +4,6 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
         IMAGE_NAME            = "${DOCKERHUB_CREDENTIALS_USR}/cw2-server"
-        
-        // This pulls the value from the container's shell environment 
-        // that was set by your init.sh script.
-        PROD_HOSTNAME         = "${env.PROD_HOSTNAME ?: env.PROD_SERVER_IP}"
     }
 
     stages {
@@ -53,15 +49,14 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
+            agent { label 'prod-node' } // Magic happens here: this stage runs ON prod
             steps {
-                sshagent(credentials: ['prod-server-ssh-key']) {
-                    sh """
-                        # Using the DNS hostname verified via 'dig'
-                        ssh -o StrictHostKeyChecking=no ubuntu@${PROD_HOSTNAME} \
-                        "/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && \
-                         /usr/local/bin/kubectl rollout status deployment/cw2-server"
-                    """
-                }
+                // No 'ssh' prefix needed! Runs locally on the prod server.
+                sh """
+                    /usr/local/bin/kubectl set image deployment/cw2-server \
+                        cw2-server=${IMAGE_NAME}:${BUILD_NUMBER}
+                    /usr/local/bin/kubectl rollout status deployment/cw2-server
+                """
             }
         }
     }

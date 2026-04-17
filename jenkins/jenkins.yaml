@@ -25,6 +25,20 @@ credentials:
       domain: {}
 
 jenkins:
+  nodes:
+    - permanent:
+        labelString: "prod-node"
+        mode: EXCLUSIVE
+        name: "prod-node"
+        numExecutors: 1
+        remoteFS: "/home/ubuntu/jenkins"
+        launcher:
+          ssh:
+            host: "prod.corp.internal"
+            port: 22
+            credentialsId: "prod-server-ssh-key"
+            sshHostKeyVerificationStrategy: "nonVerifyingKeyVerificationStrategy"
+            
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
