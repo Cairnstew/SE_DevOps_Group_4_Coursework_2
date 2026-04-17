@@ -5,6 +5,14 @@ apt-get install -y software-properties-common
 add-apt-repository --yes --update ppa:ansible/ansible
 apt-get install -y ansible
 
+# ── Install Java for Jenkins Agent ──────────────────────────────────────────
+# Required for the Jenkins controller to launch the remoting.jar
+apt-get install -y openjdk-17-jre-headless
+
+# ── Prepare Jenkins Directory ───────────────────────────────────────────────
+mkdir -p /home/ubuntu/jenkins
+chown ubuntu:ubuntu /home/ubuntu/jenkins
+
 # ── Docker (required by Minikube --driver=docker) ────────────────────────────
 apt-get install -y ca-certificates curl gnupg
 install -m 0755 -d /etc/apt/keyrings
@@ -19,6 +27,7 @@ usermod -aG docker ubuntu
 
 sleep 10
 
+# Note: Ensure the variable name matches your Terraform (e.g., ${github_repo})
 git clone https://github.com/${github_repo}.git /opt/app
 
 cd /opt/app/ansible
