@@ -50,6 +50,12 @@ pipeline {
             }
         }
 
+        stage('Debug IP') {
+            steps {
+                sh 'echo "PROD_SERVER_IP=$PROD_SERVER_IP"'
+            }
+        }
+
         // sshagent loads the key correctly from the Jenkins credential store
         stage('Deploy to Kubernetes') {
             steps {
