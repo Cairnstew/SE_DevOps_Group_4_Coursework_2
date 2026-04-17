@@ -4,13 +4,10 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
         IMAGE_NAME             = "${DOCKERHUB_CREDENTIALS_USR}/cw2-server"
-        // PROD_SERVER_IP is injected as a global env var via JCasC globalNodeProperties
-        // so it does NOT use credentials() here — that's what was causing the masker
-        // to mangle quotes around it in every sh command
+        // PROD_HOSTNAME is injected via JCasC/secrets.env and resolves to prod.corp.internal
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -56,7 +53,10 @@ pipeline {
             steps {
                 sshagent(credentials: ['prod-server-ssh-key']) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@\${PROD_SERVER_IP} "/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && /usr/local/bin/kubectl rollout status deployment/cw2-server"
+                        # Using PROD_HOSTNAME (prod.corp.internal) over private network
+                        ssh -o StrictHostKeyChecking=no ubuntu@\${PROD_HOSTNAME} \
+                        "/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && \
+                         /usr/local/bin/kubectl rollout status deployment/cw2-server"
                     """
                 }
             }
