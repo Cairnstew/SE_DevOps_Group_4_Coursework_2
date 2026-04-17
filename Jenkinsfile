@@ -54,17 +54,13 @@ pipeline {
             steps {
                 sshagent(credentials: ['prod-server-ssh-key']) {
                     script {
-                        // Build the remote command as a Groovy variable first —
-                        // this lets Groovy interpolate IMAGE_NAME and BUILD_NUMBER,
-                        // then we pass it to SSH wrapped in single quotes so the
-                        // shell never re-interprets the &&
                         def remoteCmd = "/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && /usr/local/bin/kubectl rollout status deployment/cw2-server"
-
-                        echo "=== Deploy debug ==="
-                        echo "PROD_SERVER_IP: ${PROD_SERVER_IP}"
-                        echo "Remote command: ${remoteCmd}"
-
-                        sh "ssh -o StrictHostKeyChecking=no ubuntu@${PROD_SERVER_IP} '${remoteCmd}'"
+                        withEnv(["REMOTE_CMD=${remoteCmd}", "TARGET_IP=${PROD_SERVER_IP}"]) {
+                            sh '''
+                                echo "=== sh sees: ssh ubuntu@$TARGET_IP '$REMOTE_CMD' ==="
+                                ssh -o StrictHostKeyChecking=no ubuntu@$TARGET_IP "$REMOTE_CMD"
+                            '''
+                        }
                     }
                 }
             }
