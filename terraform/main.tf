@@ -103,6 +103,7 @@ resource "aws_instance" "build_server" {
     dockerhub_username     = var.dockerhub_username
     dockerhub_password     = var.dockerhub_password
     prod_server_ssh_key    = var.prod_server_ssh_key
+    prod_server_ip         = aws_instance.prod_server.public_ip
   })
 
   tags = { Name = "Build Server" }

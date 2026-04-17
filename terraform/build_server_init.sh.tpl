@@ -33,7 +33,7 @@ git clone https://github.com/GITHUB_REPO.git /opt/app
 echo "=== Repo cloned ==="
 
 # ── Write JCasC secrets ───────────────────────────────────────────────────────
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+printf 'PROD_SERVER_IP=%s\n' '${prod_server_ip}' >> /opt/jenkins-secrets/secrets.env
 echo "=== Public IP: $PUBLIC_IP ==="
 
 mkdir -p /opt/jenkins-secrets
