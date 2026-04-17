@@ -1,8 +1,7 @@
 ---
 title: "Coursework 2 — Practical Evidence"
 subtitle: "DevOps from Code to Application Deployment"
-author:
-  - name: "Group 4"
+author: "Group 4"
 date: "April 2026"
 output:
   pdf_document:
@@ -12,7 +11,6 @@ output:
     highlight: tango
     latex_engine: xelatex
     keep_tex: false
-    fig_caption: true
     includes:
       in_header: null
 header-includes:
