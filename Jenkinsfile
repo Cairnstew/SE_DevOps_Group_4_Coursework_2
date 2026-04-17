@@ -54,13 +54,13 @@ pipeline {
             steps {
                 sshagent(credentials: ['prod-server-ssh-key']) {
                     script {
-                        def remoteCmd = "/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && /usr/local/bin/kubectl rollout status deployment/cw2-server"
-                        withEnv(["REMOTE_CMD=${remoteCmd}", "TARGET_IP=${PROD_SERVER_IP}"]) {
-                            sh '''
-                                echo "=== sh sees: ssh ubuntu@$TARGET_IP '$REMOTE_CMD' ==="
-                                ssh -o StrictHostKeyChecking=no ubuntu@$TARGET_IP "$REMOTE_CMD"
-                            '''
-                        }
+                        def image = "${IMAGE_NAME}:${BUILD_NUMBER}"
+                        def ip = "${PROD_SERVER_IP}"
+                        def sshScript = """#!/bin/bash
+                            ssh -o StrictHostKeyChecking=no ubuntu@${ip} '/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${image} && /usr/local/bin/kubectl rollout status deployment/cw2-server'
+                            """
+                        writeFile file: '/tmp/deploy.sh', text: sshScript
+                        sh 'chmod +x /tmp/deploy.sh && /tmp/deploy.sh'
                     }
                 }
             }
