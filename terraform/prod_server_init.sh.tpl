@@ -32,8 +32,22 @@ git clone https://github.com/${github_repo}.git /opt/app
 
 cd /opt/app/ansible
 
-ansible-playbook -i inventory.ini 01-install-kubectl.yml
-ansible-playbook -i inventory.ini 02-install-minikube.yml
-ansible-playbook -i inventory.ini 03-deploy-to-kubernetes.yml
-ansible-playbook -i inventory.ini 04-create-service.yml
-ansible-playbook -i inventory.ini 05-scale-deployment.yml
+echo "=== 01 install kubectl ===" | tee -a /var/log/ansible-stage.log
+ansible-playbook -i inventory.ini 01-install-kubectl.yml \
+  | tee -a /var/log/ansible-01-kubectl.log
+
+echo "=== 02 install minikube ===" | tee -a /var/log/ansible-stage.log
+ansible-playbook -i inventory.ini 02-install-minikube.yml \
+  | tee -a /var/log/ansible-02-minikube.log
+
+echo "=== 03 deploy to kubernetes ===" | tee -a /var/log/ansible-stage.log
+ansible-playbook -i inventory.ini 03-deploy-to-kubernetes.yml \
+  | tee -a /var/log/ansible-03-deploy.log
+
+echo "=== 04 create service ===" | tee -a /var/log/ansible-stage.log
+ansible-playbook -i inventory.ini 04-create-service.yml \
+  | tee -a /var/log/ansible-04-service.log
+
+echo "=== 05 scale deployment ===" | tee -a /var/log/ansible-stage.log
+ansible-playbook -i inventory.ini 05-scale-deployment.yml \
+  | tee -a /var/log/ansible-05-scale.log
