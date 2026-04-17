@@ -15,10 +15,6 @@ credentials:
           password: "${DOCKERHUB_PASSWORD}"
           scope: GLOBAL
           username: "${DOCKERHUB_USERNAME}"
-      - string:
-          id: "prod-server-ip"
-          scope: GLOBAL
-          secret: "${PROD_SERVER_IP}"
       - basicSSHUserPrivateKey:
           id: "prod-server-ssh-key"
           privateKeySource:
@@ -47,6 +43,13 @@ jenkins:
         password: "${JENKINS_ADMIN_PASSWORD}"
         properties:
         - "apiToken"
+  # Store the prod IP as a plain global env var — not a secret credential.
+  # This avoids Jenkins' secret masker mangling quotes around it in shell commands.
+  globalNodeProperties:
+    - envVars:
+        env:
+        - key: "PROD_SERVER_IP"
+          value: "${PROD_SERVER_IP}"
   slaveAgentPort: 50000
   systemMessage: "Jenkins configured via JCasC"
 

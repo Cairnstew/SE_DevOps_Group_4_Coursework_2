@@ -4,7 +4,9 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
         IMAGE_NAME             = "${DOCKERHUB_CREDENTIALS_USR}/cw2-server"
-        PROD_SERVER_IP         = credentials('prod-server-ip')
+        // PROD_SERVER_IP is injected as a global env var via JCasC globalNodeProperties
+        // so it does NOT use credentials() here — that's what was causing the masker
+        // to mangle quotes around it in every sh command
     }
 
     stages {
@@ -52,16 +54,13 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
+                // PROD_SERVER_IP is a plain env var — no masking, no quote mangling
                 sshagent(credentials: ['prod-server-ssh-key']) {
-                    script {
-                        def image = "${IMAGE_NAME}:${BUILD_NUMBER}"
-                        def ip = "${PROD_SERVER_IP}"
-                        def sshScript = """#!/bin/bash
-                            ssh -o StrictHostKeyChecking=no ubuntu@${ip} '/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${image} && /usr/local/bin/kubectl rollout status deployment/cw2-server'
-                            """
-                        writeFile file: '/tmp/deploy.sh', text: sshScript
-                        sh 'chmod +x /tmp/deploy.sh && /tmp/deploy.sh'
-                    }
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@\${PROD_SERVER_IP} \
+                            '/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && \
+                             /usr/local/bin/kubectl rollout status deployment/cw2-server'
+                    """
                 }
             }
         }
