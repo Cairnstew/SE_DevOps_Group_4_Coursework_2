@@ -16,10 +16,33 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Fetch the default VPC for Route 53 association
+data "aws_vpc" "default" {
+  default = true
+}
+
+# ── DNS: Private Hosted Zone ────────────────────────────────────────────────
+resource "aws_route53_zone" "internal" {
+  name = "corp.internal"
+
+  vpc {
+    vpc_id = data.aws_vpc.default.id
+  }
+}
+
+resource "aws_route53_record" "prod_internal" {
+  zone_id = aws_route53_zone.internal.zone_id
+  name    = "prod.corp.internal"
+  type    = "A"
+  ttl     = "300"
+  records = [aws_instance.prod_server.private_ip]
+}
+
 # ── Security Group: Build Server ────────────────────────────────────────────
 resource "aws_security_group" "build_server_sg" {
   name        = "build-server-sg"
   description = "Build Server - SSH + Jenkins"
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
     description = "SSH"
@@ -51,13 +74,23 @@ resource "aws_security_group" "build_server_sg" {
 resource "aws_security_group" "prod_server_sg" {
   name        = "prod-server-sg"
   description = "Production Server - SSH + NodePort range"
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "SSH"
+    description = "SSH from anywhere"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description     = "Allow SSH specifically from Build Server"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    # Using the Build SG ID allows communication via Private IP
+    security_groups = [aws_security_group.build_server_sg.id]
   }
 
   ingress {
@@ -103,7 +136,8 @@ resource "aws_instance" "build_server" {
     dockerhub_username     = var.dockerhub_username
     dockerhub_password     = var.dockerhub_password
     prod_server_ssh_key    = var.prod_server_ssh_key
-    prod_server_ip         = aws_instance.prod_server.public_ip
+    # Now passing the DNS Name instead of a Public IP
+    prod_server_ip         = aws_route53_record.prod_internal.fqdn
   })
 
   tags = { Name = "Build Server" }
@@ -149,14 +183,11 @@ resource "local_file" "ssh_config" {
         User ubuntu
         IdentityFile ${var.private_key_path}
         StrictHostKeyChecking no
+
+    Host prod-internal
+        HostName ${aws_route53_record.prod_internal.fqdn}
+        User ubuntu
+        IdentityFile ${var.private_key_path}
+        StrictHostKeyChecking no
   EOT
-}
-
-# ── Output public IPs ────────────────────────────────────────────────────────
-output "build_server_ip" {
-  value = aws_instance.build_server.public_ip
-}
-
-output "prod_server_ip" {
-  value = aws_instance.prod_server.public_ip
 }

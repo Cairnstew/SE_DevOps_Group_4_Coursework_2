@@ -43,12 +43,13 @@ GITHUB_USERNAME=GITHUB_USERNAME_VAL
 GITHUB_TOKEN=GITHUB_TOKEN_VAL
 DOCKERHUB_USERNAME=DOCKERHUB_USERNAME_VAL
 DOCKERHUB_PASSWORD=DOCKERHUB_PASSWORD_VAL
-PROD_SERVER_IP=PROD_SERVER_IP_VAL
+# This will now contain "prod.corp.internal"
+PROD_SERVER_IP=PROD_SERVER_IP_VAL 
 JENKINS_ADMIN_PASSWORD=JENKINS_ADMIN_PASSWORD_VAL
 JENKINS_URL=http://$BUILD_IP:8080/
 ENV
 chmod 600 /opt/jenkins-secrets/secrets.env
-echo "=== Secrets written ==="
+echo "=== Secrets written: using DNS PROD_SERVER_IP_VAL ==="
 cat /opt/jenkins-secrets/secrets.env
 
 # ── Write prod server SSH key (decode from base64) ────────────────────────────

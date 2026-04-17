@@ -22,3 +22,7 @@ output "ssh_prod_server" {
   description = "SSH command for Production Server"
   value       = "ssh -i ${var.private_key_path} ubuntu@${aws_instance.prod_server.public_ip}"
 }
+
+output "prod_server_internal_dns" {
+  value = aws_route53_record.prod_internal.fqdn
+}
