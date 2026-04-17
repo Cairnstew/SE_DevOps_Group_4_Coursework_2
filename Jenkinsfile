@@ -50,20 +50,22 @@ pipeline {
             }
         }
 
-        stage('Debug IP') {
-            steps {
-                sh 'echo "PROD_SERVER_IP=$PROD_SERVER_IP"'
-            }
-        }
-
-        // sshagent loads the key correctly from the Jenkins credential store
         stage('Deploy to Kubernetes') {
             steps {
                 sshagent(credentials: ['prod-server-ssh-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${PROD_SERVER_IP} \
-                        '/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && /usr/local/bin/kubectl rollout status deployment/cw2-server'
-                    """.stripIndent()
+                    script {
+                        // Build the remote command as a Groovy variable first —
+                        // this lets Groovy interpolate IMAGE_NAME and BUILD_NUMBER,
+                        // then we pass it to SSH wrapped in single quotes so the
+                        // shell never re-interprets the &&
+                        def remoteCmd = "/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && /usr/local/bin/kubectl rollout status deployment/cw2-server"
+
+                        echo "=== Deploy debug ==="
+                        echo "PROD_SERVER_IP: ${PROD_SERVER_IP}"
+                        echo "Remote command: ${remoteCmd}"
+
+                        sh "ssh -o StrictHostKeyChecking=no ubuntu@${PROD_SERVER_IP} '${remoteCmd}'"
+                    }
                 }
             }
         }
