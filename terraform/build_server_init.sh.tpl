@@ -33,19 +33,23 @@ git clone https://github.com/GITHUB_REPO.git /opt/app
 echo "=== Repo cloned ==="
 
 # ── Write JCasC secrets ───────────────────────────────────────────────────────
-printf 'PROD_SERVER_IP=%s\n' '${prod_server_ip}' >> /opt/jenkins-secrets/secrets.env
-echo "=== Public IP: $PUBLIC_IP ==="
+BUILD_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+echo "=== Build IP: $BUILD_IP ==="
 
 mkdir -p /opt/jenkins-secrets
+
 cat > /opt/jenkins-secrets/secrets.env << ENV
 GITHUB_USERNAME=GITHUB_USERNAME_VAL
 GITHUB_TOKEN=GITHUB_TOKEN_VAL
 DOCKERHUB_USERNAME=DOCKERHUB_USERNAME_VAL
 DOCKERHUB_PASSWORD=DOCKERHUB_PASSWORD_VAL
-PROD_SERVER_IP=$PUBLIC_IP
-JENKINS_URL=http://$PUBLIC_IP:8080/
+PROD_SERVER_IP=PROD_SERVER_IP_VAL
+JENKINS_ADMIN_PASSWORD=JENKINS_ADMIN_PASSWORD_VAL
+JENKINS_URL=http://$BUILD_IP:8080/
 ENV
 chmod 600 /opt/jenkins-secrets/secrets.env
+echo "=== Secrets written ==="
+cat /opt/jenkins-secrets/secrets.env
 
 # ── Write prod server SSH key (decode from base64) ────────────────────────────
 echo "PROD_SSH_KEY_B64_VAL" | base64 -d > /opt/jenkins-secrets/prod_server_ssh_key
@@ -70,7 +74,6 @@ docker run -d \
   --group-add $DOCKER_GID \
   -v /opt/jenkins-secrets/prod_server_ssh_key:/run/secrets/prod_server_ssh_key:ro \
   --env-file /opt/jenkins-secrets/secrets.env \
-  -e JENKINS_ADMIN_PASSWORD=JENKINS_ADMIN_PASSWORD_VAL \
   jenkins-custom
 
 echo "=== Jenkins container started ==="
@@ -78,7 +81,6 @@ echo "=== Jenkins container started ==="
 sleep 10
 docker exec -u root jenkins apt-get update -y
 docker exec -u root jenkins apt-get install -y docker.io
-
 docker exec -u root jenkins groupadd -g 999 docker || true
 docker exec -u root jenkins usermod -aG docker jenkins
 
@@ -91,8 +93,12 @@ sed -i "s|GITHUB_USERNAME_VAL|${github_username}|g"               /tmp/init.sh
 sed -i "s|GITHUB_TOKEN_VAL|${github_token}|g"                     /tmp/init.sh
 sed -i "s|DOCKERHUB_USERNAME_VAL|${dockerhub_username}|g"         /tmp/init.sh
 sed -i "s|DOCKERHUB_PASSWORD_VAL|${dockerhub_password}|g"         /tmp/init.sh
+sed -i "s|PROD_SERVER_IP_VAL|${prod_server_ip}|g"                 /tmp/init.sh
 sed -i "s|JENKINS_ADMIN_PASSWORD_VAL|${jenkins_admin_password}|g" /tmp/init.sh
-sed -i "s|PROD_SSH_KEY_B64_VAL|${prod_server_ssh_key}|g"          /tmp/init.sh
+
+# SSH key: base64 encode it first so it's a single line safe for sed
+SSH_KEY_B64=$(printf '%s' '${prod_server_ssh_key}' | base64 -w 0)
+sed -i "s|PROD_SSH_KEY_B64_VAL|$SSH_KEY_B64|g"                    /tmp/init.sh
 
 chmod +x /tmp/init.sh
 bash /tmp/init.sh
