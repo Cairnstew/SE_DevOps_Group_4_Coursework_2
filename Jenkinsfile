@@ -54,12 +54,11 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                // PROD_SERVER_IP is a plain env var — no masking, no quote mangling
                 sshagent(credentials: ['prod-server-ssh-key']) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@\${PROD_SERVER_IP} \
-                            '/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && \
-                             /usr/local/bin/kubectl rollout status deployment/cw2-server'
+                        ssh -o StrictHostKeyChecking=no ubuntu@${PROD_SERVER_IP} \
+                        "/usr/local/bin/kubectl set image deployment/cw2-server cw2-server=${IMAGE_NAME}:${BUILD_NUMBER} && \
+                        /usr/local/bin/kubectl rollout status deployment/cw2-server"
                     """
                 }
             }
