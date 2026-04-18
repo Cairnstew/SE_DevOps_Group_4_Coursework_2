@@ -167,13 +167,20 @@ resource "aws_instance" "prod_server" {
   tags = { Name = "Production Server" }
 }
 
+resource "aws_eip" "build_server_eip" {
+  instance = aws_instance.build_server.id
+  domain   = "vpc"
+
+  tags = { Name = "build-server-eip" }
+}
+
 # ── Generate SSH config ──────────────────────────────────────────────────────
 resource "local_file" "ssh_config" {
   filename        = "${path.module}/.ssh-config"
   file_permission = "0600"
   content         = <<-EOT
     Host build-server
-        HostName ${aws_instance.build_server.public_ip}
+        HostName ${aws_eip.build_server_eip.public_ip}
         User ubuntu
         IdentityFile ${var.private_key_path}
         StrictHostKeyChecking no
