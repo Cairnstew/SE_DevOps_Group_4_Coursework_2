@@ -400,6 +400,10 @@ The Jenkinsfile below defines the full five-stage continuous delivery pipeline. 
 ``` groovy
 pipeline {
     agent any
+    
+    triggers {
+        githubPush()
+    }
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
@@ -488,7 +492,7 @@ The full Jenkins console output for the final successful build is provided below
 - **Docker image push to DockerHub** — evident in the `Push to DockerHub` stage where each layer digest is confirmed as pushed.
 - **Kubernetes update command** — evident in the `Deploy to Kubernetes` stage where `kubectl set image` is issued and `kubectl rollout status` confirms the rolling update completed successfully.
 
-```
+```         
 Started by user admin
 Obtained Jenkinsfile from git https://github.com/Cairnstew/SE_DevOps_Group_4_Coursework_2.git
 [Pipeline] Start of Pipeline
