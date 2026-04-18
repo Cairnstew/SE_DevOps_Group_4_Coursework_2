@@ -103,6 +103,9 @@ tool:
 jobs:
   - script: >
       pipelineJob('SE_DevOps_Group_4_CW2') {
+        triggers {
+          githubPush()
+        }
         definition {
           cpsScm {
             scm {
