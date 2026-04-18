@@ -4,6 +4,9 @@ subtitle: "DevOps from Code to Application Deployment"
 author: "Group 4"
 date: "April 2026"
 output:
+  word_document:
+    toc: true
+    number_sections: true
   pdf_document:
     toc: true
     toc_depth: 3
@@ -11,8 +14,6 @@ output:
     highlight: tango
     latex_engine: xelatex
     keep_tex: false
-    includes:
-      in_header: null
 header-includes:
   - \usepackage{fontspec}
   - \usepackage{geometry}
