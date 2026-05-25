@@ -1,0 +1,168 @@
+---
+title: "Coursework 2 — Individual Report"
+subtitle: "DevOps from Code to Application Deployment"
+author: "Sean Cairns | Group 4"
+date: "April 2026"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    highlight: tango
+    latex_engine: xelatex
+    keep_tex: false
+  word_document:
+    toc: true
+    number_sections: true
+header-includes:
+  - \usepackage{fontspec}
+  - \usepackage{geometry}
+  - \usepackage{fancyhdr}
+  - \usepackage{xcolor}
+  - \usepackage{mdframed}
+  - \usepackage{listings}
+  - \usepackage{booktabs}
+  - \usepackage{array}
+  - \usepackage{caption}
+  - \usepackage{titlesec}
+  - \usepackage{setspace}
+  - \usepackage{parskip}
+  - \usepackage{graphicx}
+  - \usepackage{float}
+  - \usepackage{hyperref}
+  - \geometry{a4paper, top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+  - \setmainfont{Latin Modern Roman}
+  - \setmonofont{DejaVu Sans Mono}
+  - \definecolor{gcublue}{HTML}{1F3864}
+  - \definecolor{midblue}{HTML}{2E75B6}
+  - \definecolor{lightblue}{HTML}{D6E4F0}
+  - \definecolor{codebg}{HTML}{F4F6F8}
+  - \definecolor{codeframe}{HTML}{CCCCCC}
+  - \definecolor{codecomment}{HTML}{5C6370}
+  - \definecolor{codestring}{HTML}{2E7D32}
+  - \definecolor{codekeyword}{HTML}{1A237E}
+  - \pagestyle{fancy}
+  - \fancyhf{}
+  - \fancyhead[L]{\small\color{gray} SE \& DevOps --- Coursework 2 Individual Report}
+  - \fancyhead[R]{\small\color{gray} Sean Cairns \textbar\ 2025--26}
+  - \fancyfoot[C]{\small\color{gray}\thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \renewcommand{\footrulewidth}{0.4pt}
+  - \titleformat{\section}{\Large\bfseries\color{gcublue}}{}{0em}{}[\color{midblue}\titlerule]
+  - \titleformat{\subsection}{\large\bfseries\color{midblue}}{}{0em}{}
+  - \titleformat{\subsubsection}{\normalsize\bfseries\color{gcublue}}{}{0em}{}
+  - \titlespacing{\section}{0pt}{18pt}{8pt}
+  - \titlespacing{\subsection}{0pt}{12pt}{4pt}
+  - \hypersetup{colorlinks=true, linkcolor=midblue, urlcolor=midblue}
+  - \setlength{\parskip}{6pt}
+  - \setlength{\parindent}{0pt}
+  - \captionsetup{font=small, labelfont=bf}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+\newpage
+
+# My Contribution
+
+## Infrastructure & Repository
+
+I set up and owned the entire infrastructure side of the project, using Terraform to spin up both EC2 instances from scratch and automating everything from Docker installation to SSH config generation so the environment could be rebuilt cleanly each time AWS Academy expired our session.
+
+## Task 1 - Application
+
+Getting the app containerised was straightforward — I wrote a minimal Dockerfile using node:18-alpine to keep the image lightweight, built it as cw2-server:1.0, and pushed it up to DockerHub as the base for everything that followed.
+
+## Task 2 - Production Server
+
+Setting up the production server was largely an Ansible exercise — I wrote and ran the playbooks to take the server from a blank Ubuntu instance to a running Kubernetes deployment, testing each stage as I went to make sure nothing was silently failing before moving on.
+
+## Task 3 - Jenkins Pipeline
+
+The pipeline was the most involved part technically — I wrote the full Jenkinsfile from scratch, wiring together SCM polling, the Docker build and test stages, DockerHub pushing, and the final rolling deployment, then wrapped Jenkins itself in a custom Docker image with JCasC so the credentials and config were reproducible rather than manually clicked through the UI.
+
+## Video
+
+I recorded and narrated the full 5-minute pipeline demonstration, showing the initial deployment, a live code change trigger, Jenkins console output walkthrough, and the completed rolling update on the production server.
+
+\newpage
+
+# Team Members' Contributions
+
+```{r team-table, results='asis'}
+library(knitr)
+
+team <- data.frame(
+  Member = c("Joshua", "Ayanfe", "Batool", "Muhammad"),
+  check.names = FALSE
+)
+
+#kable(team, format = "markdown", align = c("l", "l"))
+```
+
+## Joshua
+
+Joshua led the written component from start to finish — he structured the whole report, wrote Part 1 covering Ansible and Kubernetes in solid detail, and then pulled everything together into a clean final document. He was also the one keeping track of deadlines and chasing people when needed, which kept the group on track. On the practical side, Joshua helped review the pipeline along multiple stages of development, and test code changes. 
+
+## Ayanfe
+
+Ayanfe handled the DevOps Transformation section and conclusion in Part 2, and made sure all the in-text citations were correct before submission. He also put together the final Harvard reference list, which saved the rest of the group a lot of time at the end. He also engaged in the practical work during meetings, helping the group understand deployment direction. 
+
+## Batool
+
+Batool wrote the Recommendations section in Part 2, keeping it focused on the cultural side of DevOps as the brief required rather than drifting into technical solutions. She also reviewed the sections written before hers to make sure the writing flowed consistently throughout.
+
+## Muhammad
+
+Muhammad was consistently present in group meetings and contributed to discussions around the cultural challenges section, particularly around siloed teams and communication breakdowns between Dev, Ops, and QA. He helped keep the group repository tidy and stayed in regular contact throughout the project. He really helped the group articulate the purpose of decisions of designs and structure in the practical component, along with Jenkinsfile testing and server development.
+
+\newpage
+
+# Peer Assessment
+
+```{r peer-table, results='asis'}
+criteria <- c(
+  "Attendance & participation (5)",
+  "Ideas & suggestions (5)",
+  "Performance of tasks (5)",
+  "Group relations (5)",
+  "Workload & contribution (5)"
+)
+
+scores <- data.frame(
+  Criteria = criteria,
+  Sean     = c(5, 5, 5, 5, 5),
+  Joshua   = c(5, 5, 5, 5, 5),
+  Ayanfe   = c(5, 4, 4, 5, 5),
+  Batool   = c(4, 4, 5, 5, 5),
+  Muhammad = c(5, 5, 4, 5, 5)
+)
+
+totals <- data.frame(
+  Criteria = "**Total (25)**",
+  Sean     = sum(scores$Sean),
+  Joshua   = sum(scores$Joshua),
+  Ayanfe   = sum(scores$Ayanfe),
+  Batool   = sum(scores$Batool),
+  Muhammad = sum(scores$Muhammad)
+)
+
+kable(rbind(scores, totals),
+      format    = "markdown",
+      align     = c("l", "c", "c", "c", "c", "c"),
+      col.names = c("Criteria", "Sean", "Joshua", "Ayanfe", "Batool", "Muhammad"))
+```
+
+\newpage
+
+# Reflections
+
+## Successes
+
+The group worked together towards project completion and divided responsibilities clearly with each group member contributing towards their area of strength. The full CI/CD pipeline was successfully implemented end-to-end within the aws environment, and Terraform made the infrastructure fully reproducible across AWS Academy session restarts.
+
+## Weaknesses
+
+AWS Academy's restricted IAM permissions caused early delays in Terraform setup, while powerful terraform was not always used by group members due to technical issues.
